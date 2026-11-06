@@ -1,6 +1,6 @@
 # 🎧 3X-UI Hysteria2 端口跳跃配置教程
 
-适用：Ubuntu 24.04、3X-UI、Hysteria2。
+适用：Debian 12 / Ubuntu 24.04（systemd）、3X-UI、Hysteria2。
 端口跳跃需要三件事同时生效，少一件客户端就连不上：
 
 1. 一段"跳跃端口范围"（比如 `20000-30000`）的 UDP 流量，被转发到 Hysteria2 真正监听的那个端口（比如 `443`）。
@@ -113,16 +113,18 @@
 
 ## 二、安装 Hysteria2-Hop
 
-SSH 登录 VPS，执行：
+SSH 登录 VPS，上传并解压此修改版的完整目录，进入包含 `install.sh` 和 `hy2hop.py` 的目录后执行：
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hysteria2-Hop/main/bootstrap.sh)"
+sudo apt-get update
+sudo apt-get install -y python3 iproute2 ca-certificates
+sudo bash install.sh
 ```
 
-本地已经有完整仓库的话，也可以在仓库目录里直接：
+使用 root 登录时省略 sudo。在线安装请使用 [README 中的 OctoberCK fork 安装命令](../README.md#安装此-debian-12-兼容版)，上游 hcloudlab 地址仍下载原版。需要非交互安装时可指定实际入站 ID（以下 `5` 仅为示例）：
 
 ```bash
-sudo bash install.sh
+sudo bash install.sh install --inbound-id 5
 ```
 
 脚本只读 3X-UI 数据库，根据入站的监听端口和 Hop Ports 配置 nftables UDP 转发、UFW 规则和 systemd 启动恢复，具体会自动做这几件事：

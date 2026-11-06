@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""HCloudLab HY2 Hop: Ubuntu 24.04, read-only 3X-UI, dedicated nft NAT."""
+"""HCloudLab HY2 Hop: Debian 12 / Ubuntu 24.04, read-only 3X-UI, dedicated nft NAT."""
 import argparse
 import fcntl
 import json
 import os
 import re
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -29,7 +30,9 @@ LOCK = Path('/run/hcloudlab-hy2hop.lock')
 
 
 def run(cmd, check=True, input_text=None):
-    p = subprocess.run(cmd, input=input_text, text=True, capture_output=True)
+    # UFW status parsing relies on English output, regardless of the host locale.
+    p = subprocess.run(cmd, input=input_text, text=True, capture_output=True,
+                       encoding='utf-8', errors='replace', env=dict(os.environ, LC_ALL='C'))
     if check and p.returncode:
         raise RuntimeError(f"{' '.join(cmd)}: {p.stderr.strip() or p.stdout.strip()}")
     return p
@@ -40,9 +43,17 @@ def prerequisites():
         raise RuntimeError('需要 root 权限')
     if not Path('/run/systemd/system').exists():
         raise RuntimeError('需要 systemd')
-    text = Path('/etc/os-release').read_text()
-    if not re.search(r'^ID=ubuntu$', text, re.M) or not re.search(r'^VERSION_ID="?24\.04"?$', text, re.M):
-        raise RuntimeError('V1 仅支持 Ubuntu 24.04')
+    release = {}
+    for line in Path('/etc/os-release').read_text(encoding='utf-8').splitlines():
+        key, sep, value = line.partition('=')
+        if sep and key in ('ID', 'VERSION_ID'):
+            # os-release allows quoted values; parse as data, never execute it.
+            values = shlex.split(value, comments=True)
+            release[key] = values[0] if len(values) == 1 else ''
+    if (release.get('ID'), release.get('VERSION_ID')) not in {
+        ('ubuntu', '24.04'), ('debian', '12')
+    }:
+        raise RuntimeError('仅支持 Debian 12 或 Ubuntu 24.04')
     for command in ('systemctl', 'ss', 'ip', 'apt-get'):
         if not shutil.which(command):
             raise RuntimeError(f'缺少系统命令 {command}')
@@ -227,7 +238,7 @@ def write_state(state):
 
 
 def unit_content():
-    return ('[Unit]\nDescription=HCloudLab Hysteria2 UDP Hop\nAfter=network-online.target ufw.service x-ui.service\n'
+    return ('[Unit]\nDescription=HCloudLab Hysteria2 UDP Hop\nAfter=network-online.target nftables.service ufw.service x-ui.service\n'
             'Wants=network-online.target\n[Service]\nType=oneshot\nRemainAfterExit=yes\n'
             f'ExecStart={SELF} reload\nExecStop={SELF} stop-rules\n'
             '[Install]\nWantedBy=multi-user.target\n')
