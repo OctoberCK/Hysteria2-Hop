@@ -59,7 +59,7 @@ Debian 未安装或未开启 UFW 时，脚本不会安装或开启它；已有�
 - systemd 服务新增 `After=nftables.service`；Debian 的 [nftables 服务](https://sources.debian.org/src/nftables/1.0.6-2%2Bdeb12u2/debian/nftables.service/) 会加载全局规则，应先完成该步骤再加载本工具的专属表。
 - 本地安装脚本支持传参；bootstrap 运行结束后清理临时目录。
 - 当前验证：Windows Python 3.10 下 38 项 mock/SQLite 测试通过；仅为导入 Linux 专用模块提供了 `fcntl` 占位，测试未调用真实文件锁。Python 编译和 Bash 语法检查通过。
-- 已添加 Debian 12 / Ubuntu 24.04 容器 CI，运行系统 Python 的测试，以及真实 IPv4/IPv6 nftables 规则检查、加载、清理；**此 CI 尚未运行**，容器测试也不代表 systemd 启动、重启或公网客户端验证。
+- Debian 12 / Ubuntu 24.04 容器 CI [已通过](https://github.com/OctoberCK/Hysteria2-Hop/actions/runs/42221360782)：两组均使用发行版自带 Python 跑通 38 项测试，并通过真实 IPv4/IPv6 nftables 规则检查、加载、清理。容器测试不代表 systemd 启动、重启或公网客户端验证。
 - **此修改版尚未在 Debian 12 VPS 上完成安装、更新、恢复、重启及客户端连通性实测。** 请按下方验收步骤检查；`status PASS` 只表示本机配置检查通过。
 
 ## VPS / ISP 推荐
